@@ -2,6 +2,10 @@ from discord.ext import commands
 from config import token
 client = commands.Bot(command_prefix="!")
 
+hello_list = ['hello', 'hi', 'привет', 'здорова', 'здоров', 'ку', 'privet', 'ky', 'доров']
+answer_words = ['узнать информацию о сервере', 'че как?', 'как сервер?', 'че скажешь?', 'команды', 'команды сервера']
+goodbye_words = ['пока', 'пакеда', 'до связи', 'всем пока', 'всем добра', 'всем бобра', 'спокойной', 'спокойной ночи']
+
 @client.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
@@ -67,5 +71,17 @@ async def on_ready():
 # async def stop(ctx):
 #     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
 #     voice.stop()
+
+@client.event
+async def on_message(message):
+    msg = message.content.lower()
+
+    if msg in hello_list:
+        await message.channel.send('Привет! Как дела? Как сам?')
+    if msg in answer_words:
+        await  message.channel.send('Пропиши в чат команаду !help')
+    if msg in goodbye_words:
+        await  message.channel.send('Пока! Приходи ещё!')
+    print('Message')
 
 client.run(token)
