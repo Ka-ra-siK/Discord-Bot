@@ -2,7 +2,9 @@ import discord
 from discord.ext import commands
 from config import token
 from config import prefix
-client = commands.Bot(command_prefix = "!")
+from discord.utils import get
+
+client = commands.Bot(command_prefix = prefix)
 client.remove_command('help')
 
 hello_list = ['hello', 'hi', 'привет', 'здорова', 'здоров', 'ку', 'privet', 'ky', 'доров']
@@ -105,6 +107,29 @@ async def help(ctx):
     emb = discord.Embed(title = 'Навигация по командам')
     emb.add_field(name = '{}clear #'.format(prefix), value='Очистка чата')
     emb.add_field(name = '{}hello'.format(prefix), value='Поздороваться с пользователем')
+    emb.add_field(name = '{}join'.format(prefix), value='Присоединиться к голосовому каналу')
+    emb.add_field(name = '{}leave'.format(prefix), value='Покинуть голосовой канал')
     await ctx.send(embed = emb)
+
+@client.command() #Присоединиться к голосовому каналу
+async def join(ctx):
+    global voice
+    channel = ctx.message.author.voice.channel
+    voice = get(client.voice_clients, guild = ctx.guild)
+
+    if voice and voice.is_connected():
+        await voice.move_to(channel)
+    else:
+        voice = await channel.connect()
+        await ctx.send(f'Бот присоединился к каналу:{channel}')
+
+@client.command() #Покинуть голосовой канал
+async def leave(ctx):
+    channel = ctx.message.author.voice.channel
+    voice = get(client.voice_clients, guild = ctx.guild)
+
+    if voice and voice.is_connected():
+        await voice.disconnect()
+        await ctx.send(f'Бот отключился от канала:{channel}')
 
 client.run(token)
