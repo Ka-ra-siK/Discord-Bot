@@ -1,21 +1,49 @@
 import discord
 from discord.ext import commands
-from config import token
-from config import prefix
+from config import settings
 from discord.utils import get
+import sqlite3
 
-client = commands.Bot(command_prefix = prefix)
+client = commands.Bot(command_prefix = settings['prefix'])
 client.remove_command('help')
 
 hello_list = ['hello', 'hi', 'привет', 'здорова', 'здоров', 'ку', 'privet', 'ky', 'доров']
 answer_words = ['узнать информацию о сервере', 'че как?', 'как сервер?', 'че скажешь?', 'команды', 'команды сервера']
 goodbye_words = ['пока', 'пакеда', 'до связи', 'всем пока', 'всем добра', 'всем бобра', 'спокойной', 'спокойной ночи']
+cards_words = ['я', 'I', 'my card', 'card', 'карточка']
+
+connection = sqlite3.connect('server.db')
+cursor = connection.cursor()
 
 
 @client.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
     await client.change_presence(status = discord.Status.online, activity= discord.Game('Слушать и повиноваться'))
+    cursor.execute("""CREATE TABLE users(
+        name TEXT,
+        id INT,
+        cash BIGINT,
+        rep INT,
+        lvl INT
+    )""")
+    connection.commit()
+
+    for guild in client.guilds:
+        for member in guild.members:
+            if cursor.execute(f"SELECT of FROM users WHERE id = {member.id}").fetchone() is None:
+                cursor.execute(f"INSERT INTO users VALUES ('{member}', {member.id}), 0, 0, 1")
+                connection.commit()
+            else:
+                pass
+
+@client.event # Добавление нового пользователя в БД
+async def on_member_join(member):
+    if cursor.execute(f"SELECT of FROM users WHERE id = {member.id}").fetchone() is None:
+        cursor.execute(f"INSERT INTO users VALUES ('{member}', {member.id}), 0, 0, 1")
+        connection.commit()
+    else:
+        pass
 
 # @client.command()
 # async def play(ctx, url : str):
@@ -105,10 +133,10 @@ async def on_message(message):
 @client.command(pass_context = True)
 async def help(ctx):
     emb = discord.Embed(title = 'Навигация по командам')
-    emb.add_field(name = '{}clear #'.format(prefix), value='Очистка чата')
-    emb.add_field(name = '{}hello'.format(prefix), value='Поздороваться с пользователем')
-    emb.add_field(name = '{}join'.format(prefix), value='Присоединиться к голосовому каналу')
-    emb.add_field(name = '{}leave'.format(prefix), value='Покинуть голосовой канал')
+    emb.add_field(name = '{}clear #'.format(settings['prefix']), value='Очистка чата')
+    emb.add_field(name = '{}hello'.format(settings['prefix']), value='Поздороваться с пользователем')
+    emb.add_field(name = '{}join'.format(settings['prefix']), value='Присоединиться к голосовому каналу')
+    emb.add_field(name = '{}leave'.format(settings['prefix']), value='Покинуть голосовой канал')
     await ctx.send(embed = emb)
 
 @client.command() #Присоединиться к голосовому каналу
@@ -132,4 +160,8 @@ async def leave(ctx):
         await voice.disconnect()
         await ctx.send(f'Бот отключился от канала:{channel}')
 
-client.run(token)
+# @client.command(aliases = cards_words) TODO доделать
+# async def cerd_user(ctx):
+
+
+client.run(settings['token'])
