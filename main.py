@@ -1,14 +1,19 @@
+import discord
 from discord.ext import commands
 from config import token
-client = commands.Bot(command_prefix="!")
+from config import prefix
+client = commands.Bot(command_prefix = "!")
+client.remove_command('help')
 
 hello_list = ['hello', 'hi', 'привет', 'здорова', 'здоров', 'ку', 'privet', 'ky', 'доров']
 answer_words = ['узнать информацию о сервере', 'че как?', 'как сервер?', 'че скажешь?', 'команды', 'команды сервера']
 goodbye_words = ['пока', 'пакеда', 'до связи', 'всем пока', 'всем добра', 'всем бобра', 'спокойной', 'спокойной ночи']
 
+
 @client.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
+    await client.change_presence(status = discord.Status.online, activity= discord.Game('Слушать и повиноваться'))
 
 # @client.command()
 # async def play(ctx, url : str):
@@ -72,16 +77,34 @@ async def on_ready():
 #     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
 #     voice.stop()
 
+@client.command(pass_context = True)
+async def clear(ctx, amount = 2):
+    await ctx.channel.purge(limit = amount)
+
+@client.command(pass_context = True)
+async def hello(ctx, amount = 1):
+    await ctx.channel.purge(limit = amount)
+    author = ctx.message.author
+    await ctx.send(f'Hello {author.mention}')
+
 @client.event
 async def on_message(message):
+    await client.process_commands(message)
     msg = message.content.lower()
 
-    if msg in hello_list:
-        await message.channel.send('Привет! Как дела? Как сам?')
+    #if msg in hello_list:
+      #  await message.channel.send('Привет! Как дела? Как сам?')
     if msg in answer_words:
         await  message.channel.send('Пропиши в чат команаду !help')
     if msg in goodbye_words:
         await  message.channel.send('Пока! Приходи ещё!')
     print('Message')
+
+@client.command(pass_context = True)
+async def help(ctx):
+    emb = discord.Embed(title = 'Навигация по командам')
+    emb.add_field(name = '{}clear #'.format(prefix), value='Очистка чата')
+    emb.add_field(name = '{}hello'.format(prefix), value='Поздороваться с пользователем')
+    await ctx.send(embed = emb)
 
 client.run(token)
