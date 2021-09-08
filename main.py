@@ -1,4 +1,9 @@
+import random as rand
+import time
+import json
 import discord
+import requests
+import bs4
 from discord.ext import commands
 from config import settings
 from discord.utils import get
@@ -15,35 +20,64 @@ cards_words = ['я', 'I', 'my card', 'card', 'карточка']
 connection = sqlite3.connect('server.db')
 cursor = connection.cursor()
 
+def get_quote():
+    response = requests.get("https://zenquotes.io/api/random")
+    json_data = json.loads(response.text)
+    quote = json_data[0]['q'] + " -" + json_data[0]['a']
+    return (quote)
+
+def get_anecdote():
+    z = ''
+    s = requests.get('http://anekdotme.ru/random')
+    b = bs4.BeautifulSoup(s.text, "html.parser")
+    p = b.select('.anekdot_text')
+    for x in p:
+        s = (x.getText().strip())
+        z = z + s + '\n\n'
+    return s
 
 @client.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
     await client.change_presence(status = discord.Status.online, activity= discord.Game('Слушать и повиноваться'))
-    cursor.execute("""CREATE TABLE users(
+
+    cursor.execute("""CREATE TABLE IF NOT EXISTS users(
         name TEXT,
         id INT,
         cash BIGINT,
         rep INT,
         lvl INT
     )""")
-    connection.commit()
 
     for guild in client.guilds:
         for member in guild.members:
-            if cursor.execute(f"SELECT of FROM users WHERE id = {member.id}").fetchone() is None:
-                cursor.execute(f"INSERT INTO users VALUES ('{member}', {member.id}), 0, 0, 1")
-                connection.commit()
+            if cursor.execute(f"SELECT id FROM users WHERE id = {member.id}").fetchone() is None:
+                cursor.execute(f"INSERT INTO users VALUES (?, ?, 0, 0, 1)", (str(member), member.id))
             else:
                 pass
+    connection.commit()
 
 @client.event # Добавление нового пользователя в БД
 async def on_member_join(member):
-    if cursor.execute(f"SELECT of FROM users WHERE id = {member.id}").fetchone() is None:
-        cursor.execute(f"INSERT INTO users VALUES ('{member}', {member.id}), 0, 0, 1")
+    if cursor.execute(f"SELECT id FROM users WHERE id = {member.id}").fetchone() is None:
+        cursor.execute(f"INSERT INTO users VALUES (?, ?, 0, 0, 1)", (str(member), member.id))
+        print(member)
         connection.commit()
     else:
+        print('Ничего')
         pass
+
+
+@client.command(aliases = ['balance', 'cash', 'че_с_деньгами?', 'чё_с_деньгами?', 'че_с_деньгами', 'чё_с_деньгами'])
+async def _balance(ctx, member: discord.Member = None):
+    if member is None:
+        await ctx.send(embed = discord.Embed(
+            description= f"""Баланс **{ctx.author}** = **{cursor.execute("SELECT cash FROM users WHERE id = {}".format(ctx.author.id)).fetchone()[0]} :leaves:**"""
+        ))
+    else:
+        await ctx.send(embed=discord.Embed(
+            description = f"""Баланс **{member}** = **{cursor.execute("SELECT cash FROM users WHERE id = {}".format(member.id)).fetchone()[0]} :leaves:**"""
+        ))
 
 # @client.command()
 # async def play(ctx, url : str):
@@ -137,6 +171,9 @@ async def help(ctx):
     emb.add_field(name = '{}hello'.format(settings['prefix']), value='Поздороваться с пользователем')
     emb.add_field(name = '{}join'.format(settings['prefix']), value='Присоединиться к голосовому каналу')
     emb.add_field(name = '{}leave'.format(settings['prefix']), value='Покинуть голосовой канал')
+    emb.add_field(name = '{}heads_or_tails'.format(settings['prefix']), value='Подбросить монету')
+    emb.add_field(name = '{}max'.format(settings['prefix']), value='Послушать анекдот от Максима Александровича')
+    emb.add_field(name = '{}quote'.format(settings['prefix']), value='Послушать рандомную цитату')
     await ctx.send(embed = emb)
 
 @client.command() #Присоединиться к голосовому каналу
@@ -159,6 +196,27 @@ async def leave(ctx):
     if voice and voice.is_connected():
         await voice.disconnect()
         await ctx.send(f'Бот отключился от канала:{channel}')
+
+@client.command()
+async def heads_or_tails(ctx):
+    await ctx.send(f'Монета подбрасывается...')
+    coin = rand.randint(1, 2)
+    print(coin)
+    time.sleep(1)
+    if coin == 1:
+        await ctx.send(f':full_moon: Выпал Орёл!')
+    else:
+        await ctx.send(f':new_moon: Выпал Решка!')
+
+@client.command() #Цитата дня
+async def quote(ctx):
+    quote = get_quote()
+    await ctx.send(quote)
+
+@client.command() #Анекдот дня
+async def max(ctx):
+    anecdote = get_anecdote()
+    await ctx.send(anecdote)
 
 # @client.command(aliases = cards_words) TODO доделать
 # async def cerd_user(ctx):
