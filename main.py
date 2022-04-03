@@ -12,11 +12,6 @@ import sqlite3
 client = commands.Bot(command_prefix = settings['prefix'])
 client.remove_command('help')
 
-hello_list = ['hello', 'hi', 'привет', 'здорова', 'здоров', 'ку', 'privet', 'ky', 'доров']
-answer_words = ['узнать информацию о сервере', 'че как?', 'как сервер?', 'че скажешь?', 'команды', 'команды сервера']
-goodbye_words = ['пока', 'пакеда', 'до связи', 'всем пока', 'всем добра', 'всем бобра', 'спокойной', 'спокойной ночи']
-cards_words = ['я', 'I', 'my card', 'card', 'карточка']
-
 connection = sqlite3.connect('server.db')
 cursor = connection.cursor()
 
@@ -68,7 +63,7 @@ async def on_member_join(member):
         pass
 
 
-@client.command(aliases = ['balance', 'cash', 'че_с_деньгами?', 'чё_с_деньгами?', 'че_с_деньгами', 'чё_с_деньгами'])
+@client.command(aliases = ['balance'])
 async def _balance(ctx, member: discord.Member = None):
     if member is None:
         await ctx.send(embed = discord.Embed(
